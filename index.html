@@ -21,7 +21,6 @@
     <div id="app" class="flex-1 flex flex-col"></div>
 
     <script>
-        // Налаштування хмари JSONBin
         const BIN_ID = "6ad792d7ffd5d160537c8c20"; 
         const API_KEY = "\$2a\$10\$YYXqEKbmwkXFh9ELrwz.ZO/GD/HlXa5pd6S41A/BA77ucYWUuxBA2";
 
@@ -63,8 +62,15 @@
                     });
                     if (response.ok) {
                         const result = await response.json();
-                        if (result.record && result.record.users) {
+                        if (result.record && Array.isArray(result.record.users)) {
                             db = result.record;
+                            // Перевіряємо та додаємо користувачів з DEFAULT_DATA, якщо їх немає в хмарі
+                            DEFAULT_DATA.users.forEach(defUser => {
+                                const exists = db.users.some(u => u.login === defUser.login);
+                                if (!exists) {
+                                    db.users.push(defUser);
+                                }
+                            });
                         }
                     }
                 }
@@ -151,7 +157,7 @@
                             </div>
 
                             <button type="submit" class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl transition shadow-lg shadow-indigo-600/30">
-                                Увійти
+                                Увійти до системи &rarr;
                             </button>
                         </form>
                     </div>
