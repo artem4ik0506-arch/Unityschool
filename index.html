@@ -21,9 +21,9 @@
     <div id="app" class="flex-1 flex flex-col"></div>
 
     <script>
-        // Облачне сховище для синхронізації між пристроями 24/7
-        const BIN_ID = "67123456ae9310106f000000"; 
-        const API_KEY = "\$2a\$10\$UnitySchoolCloudKey2026SecureStorageX99";
+        // Налаштування хмари JSONBin
+        const BIN_ID = "6ad792d7ffd5d160537c8c20"; 
+        const API_KEY = "\$2a\$10\$YYXqEKbmwkXFh9ELrwz.ZO/GD/HlXa5pd6S41A/BA77ucYWUuxBA2";
 
         const DEFAULT_DATA = {
             currentUser: null,
@@ -55,21 +55,40 @@
         let db = JSON.parse(JSON.stringify(DEFAULT_DATA));
         let currentTab = 'teachers';
 
-        // Завантаження даних із хмари або локальної пам'яті
         async function loadCloudDB() {
             try {
-                const saved = localStorage.getItem('unity_school_db_v7');
-                if (saved) {
-                    db = JSON.parse(saved);
+                if (BIN_ID && API_KEY) {
+                    const response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+                        headers: { 'X-Master-Key': API_KEY }
+                    });
+                    if (response.ok) {
+                        const result = await response.json();
+                        if (result.record && result.record.users) {
+                            db = result.record;
+                        }
+                    }
                 }
             } catch(e) {
-                db = JSON.parse(JSON.stringify(DEFAULT_DATA));
+                console.error("Помилка завантаження з хмари:", e);
             }
             render();
         }
 
-        function saveCloudDB() {
-            localStorage.setItem('unity_school_db_v7', JSON.stringify(db));
+        async function saveCloudDB() {
+            if (BIN_ID && API_KEY) {
+                try {
+                    await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Master-Key': API_KEY
+                        },
+                        body: JSON.stringify(db)
+                    });
+                } catch(e) {
+                    console.error("Помилка збереження в хмару:", e);
+                }
+            }
         }
 
         loadCloudDB();
@@ -524,7 +543,7 @@
             render();
         }
 
-        function handleAddTeacher(e) {
+        async function handleAddTeacher(e) {
             e.preventDefault();
             const name = document.getElementById('t_name').value.trim();
             const dob = document.getElementById('t_dob').value;
@@ -536,11 +555,11 @@
             if (db.users.some(u => u.login === log)) return alert('Логін зайнятий!');
 
             db.users.push({ id: 'usr_' + Date.now(), fullName: name, birthDate: dob, subjects: subjs, classes: clss, login: log, password: pas, role: 'teacher' });
-            saveCloudDB();
+            await saveCloudDB();
             render();
         }
 
-        function handleAddStudent(e) {
+        async function handleAddStudent(e) {
             e.preventDefault();
             const name = document.getElementById('s_name').value.trim();
             const cls = document.getElementById('s_class').value;
@@ -550,11 +569,11 @@
             if (db.users.some(u => u.login === log)) return alert('Логін зайнятий!');
 
             db.users.push({ id: 'usr_' + Date.now(), fullName: name, studentClass: cls, login: log, password: pas, role: 'student' });
-            saveCloudDB();
+            await saveCloudDB();
             render();
         }
 
-        function handleAddAdmin(e) {
+        async function handleAddAdmin(e) {
             e.preventDefault();
             const name = document.getElementById('a_name').value.trim();
             const log = document.getElementById('a_login').value.trim();
@@ -563,43 +582,43 @@
             if (db.users.some(u => u.login === log)) return alert('Логін зайнятий!');
 
             db.users.push({ id: 'usr_' + Date.now(), fullName: name, login: log, password: pas, role: 'admin' });
-            saveCloudDB();
+            await saveCloudDB();
             render();
         }
 
-        function handleDeleteUser(id) {
+        async function handleDeleteUser(id) {
             if (confirm('Видалити користувача?')) {
                 db.users = db.users.filter(u => u.id !== id);
-                saveCloudDB();
+                await saveCloudDB();
                 render();
             }
         }
 
-        function handleAddClass(e) {
+        async function handleAddClass(e) {
             e.preventDefault();
             const name = document.getElementById('new_class_name').value.trim();
-            if (name && !db.classes.includes(name)) { db.classes.push(name); saveCloudDB(); render(); }
+            if (name && !db.classes.includes(name)) { db.classes.push(name); await saveCloudDB(); render(); }
         }
 
-        function handleDeleteClass(clsName) {
+        async function handleDeleteClass(clsName) {
             db.classes = db.classes.filter(c => c !== clsName);
-            saveCloudDB();
+            await saveCloudDB();
             render();
         }
 
-        function handleAddSubject(e) {
+        async function handleAddSubject(e) {
             e.preventDefault();
             const name = document.getElementById('new_subject_name').value.trim();
-            if (name && !db.subjects.includes(name)) { db.subjects.push(name); saveCloudDB(); render(); }
+            if (name && !db.subjects.includes(name)) { db.subjects.push(name); await saveCloudDB(); render(); }
         }
 
-        function handleDeleteSubject(subjName) {
+        async function handleDeleteSubject(subjName) {
             db.subjects = db.subjects.filter(s => s !== subjName);
-            saveCloudDB();
+            await saveCloudDB();
             render();
         }
 
-        function handleAddSchedule(e, cls) {
+        async function handleAddSchedule(e, cls) {
             e.preventDefault();
             const day = document.getElementById('sc_day').value;
             const num = Number(document.getElementById('sc_num').value);
@@ -607,35 +626,35 @@
             const room = document.getElementById('sc_room').value.trim();
 
             db.schedule.push({ id: 'sc_' + Date.now(), studentClass: cls, day, lessonNumber: num, subject: subj, room });
-            saveCloudDB();
+            await saveCloudDB();
             render();
         }
 
-        function handleDeleteSchedule(id) {
+        async function handleDeleteSchedule(id) {
             db.schedule = db.schedule.filter(s => s.id !== id);
-            saveCloudDB();
+            await saveCloudDB();
             render();
         }
 
-        function handleSaveLesson(e, cls, subj) {
+        async function handleSaveLesson(e, cls, subj) {
             e.preventDefault();
             const topic = document.getElementById('l_topic').value.trim();
             const hw = document.getElementById('l_hw').value.trim();
 
             db.lessons.push({ id: 'les_' + Date.now(), studentClass: cls, subject: subj, topic, homework: hw, date: new Date().toLocaleDateString('uk-UA') });
-            saveCloudDB();
+            await saveCloudDB();
             alert('Урок збережено!');
             document.getElementById('l_topic').value = '';
             document.getElementById('l_hw').value = '';
         }
 
-        function handleAddGrade(studentId, subj) {
+        async function handleAddGrade(studentId, subj) {
             const input = document.getElementById(`grade_val_${studentId}`);
             const val = input.value.trim().toUpperCase();
             if (!val) return;
 
             db.grades.push({ id: 'grd_' + Date.now(), studentId, subject: subj, val, date: new Date().toLocaleDateString('uk-UA') });
-            saveCloudDB();
+            await saveCloudDB();
             render();
         }
 
